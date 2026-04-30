@@ -1,0 +1,513 @@
+<!DOCTYPE html>
+<html lang="pt-BR">
+<head>
+<meta charset="UTF-8">
+<title>Simulador MCS-51 — Intel 8051</title>
+<style>
+:root{--g:#2aee0a;--gd:#0d5502;--gb:#1a9902;--gc:#7fff44;--gy:#ffe833;--ge:#ff4422;--bg:#010800;--pb:#010d00;--br:#1a5200;--bb:#2a8800}
+*{box-sizing:border-box;margin:0;padding:0}
+body{background:#111;display:flex;justify-content:center;align-items:flex-start;min-height:100vh;padding:20px;font-family:'Courier New',monospace}
+#app{font-family:'Courier New',monospace;font-size:12px;background:var(--bg);color:var(--g);height:620px;display:flex;flex-direction:column;overflow:hidden;border:1px solid var(--br);width:100%;max-width:1100px}
+#tbar{background:#001200;border-bottom:2px solid var(--bb);padding:4px 10px;display:flex;align-items:center;justify-content:space-between;flex-shrink:0}
+#tbar h1{font-size:13px;letter-spacing:3px;color:var(--gc)}
+#tbar .sub{font-size:9px;color:var(--gd);letter-spacing:1px}
+#toolbar{background:var(--pb);border-bottom:1px solid var(--br);padding:4px 8px;display:flex;align-items:center;gap:5px;flex-shrink:0;flex-wrap:wrap}
+button{background:#011200;color:var(--g);border:1px solid var(--br);padding:2px 10px;font-family:'Courier New',monospace;font-size:11px;cursor:pointer;letter-spacing:.5px}
+button:hover:not(:disabled){background:#022200;color:var(--gc);border-color:var(--bb)}
+button:disabled{opacity:.25;cursor:default}
+button.bprim{border-color:#33aa00;color:var(--gc)}
+button.bdng{border-color:#aa2200;color:#ff6633}
+#spdlbl{font-size:10px;color:var(--gd);margin-left:4px}
+#spdrng{accent-color:var(--g);width:70px}
+#sinfo{margin-left:auto;font-size:10px;color:var(--gd)}
+#sinfo .v{color:var(--g)}
+#main{display:flex;flex:1;overflow:hidden;gap:1px;background:var(--br)}
+.panel{background:var(--pb);display:flex;flex-direction:column;overflow:hidden}
+.phdr{background:#011000;border-bottom:1px solid var(--br);padding:2px 6px;font-size:9px;color:var(--gd);letter-spacing:2px;flex-shrink:0;display:flex;justify-content:space-between}
+#ep{flex:0 0 38%}
+#etabs{display:flex;background:#010d00;border-bottom:1px solid var(--br);flex-shrink:0}
+.tab{padding:2px 10px;font-size:10px;cursor:pointer;color:var(--gd);border-right:1px solid var(--br)}
+.tab.act{color:var(--g);background:var(--pb)}
+#ced{flex:1;background:#010500;color:var(--g);border:none;outline:none;font-family:'Courier New',monospace;font-size:12px;line-height:1.55;padding:6px 8px;resize:none;width:100%;caret-color:var(--gc);tab-size:8;display:block}
+#cdsp{flex:1;overflow-y:auto;display:none;font-size:12px;line-height:1.55}
+.sl{display:flex;align-items:center;gap:6px;padding:0 4px;min-height:18px}
+.sl .ln{color:var(--gd);min-width:22px;text-align:right;font-size:10px;user-select:none}
+.sl .ar{min-width:10px;font-size:10px;color:var(--gd)}
+.sl.ipc{background:#002600;border-left:2px solid #00ffee}
+.sl.ipc .code{color:#00ffee}
+.sl.ipc .ar{color:#00ffee}
+#log{flex:0 0 70px;border-top:1px solid var(--br);background:#010300;overflow-y:auto;padding:3px 6px;font-size:10px;flex-shrink:0}
+.ll{line-height:1.4;color:var(--gd)}
+.ll.i{color:var(--g)} .ll.ok{color:var(--g)} .ll.e{color:var(--ge)} .ll.w{color:#ffaa22}
+#rp{flex:0 0 210px}
+#rc{flex:1;overflow-y:auto;padding:5px 7px}
+.rs{margin-bottom:7px}
+.rst{font-size:9px;letter-spacing:2px;color:var(--gd);border-bottom:1px solid #0d2500;padding-bottom:1px;margin-bottom:3px}
+.rr{display:flex;justify-content:space-between;align-items:baseline;padding:1px 1px;gap:3px}
+.rn{color:var(--gd);font-size:10px;min-width:36px}
+.rv{color:var(--gc);font-size:11px;font-weight:bold;text-align:right}
+.rv.ch{color:var(--gy)}
+.fg{display:grid;grid-template-columns:repeat(8,1fr);gap:2px;margin-top:2px}
+.fc{display:flex;flex-direction:column;align-items:center;gap:1px}
+.fc .fn{font-size:8px;color:var(--gd)}
+.fc .fv{font-size:12px;font-weight:bold;color:var(--gd)}
+.fc .fv.set{color:var(--gy)}
+#mp{flex:1}
+#mc{flex:1;overflow:auto;padding:5px 7px;font-size:11px}
+.mhrow{display:flex;gap:2px;color:var(--gd);font-size:9px;padding-bottom:2px;border-bottom:1px solid #0d2500;margin-bottom:1px;white-space:nowrap;padding-left:2px}
+.mhb{min-width:20px;text-align:center}
+.mrow{display:flex;gap:2px;align-items:center;height:16px;padding-left:2px;white-space:nowrap}
+.ma{color:var(--gd);min-width:26px;font-size:10px}
+.mb{min-width:20px;text-align:center;color:#0d3a0d;cursor:default}
+.mb.nz{color:var(--g)}
+.mb.ch{color:var(--gy)}
+.mb.sk{outline:1px solid #334433}
+.masc{margin-left:4px;color:var(--gd);font-size:11px;border-left:1px solid #0d2500;padding-left:3px;letter-spacing:1px}
+select#exsel{background:#010d00;color:var(--g);border:1px solid var(--br);font-family:'Courier New',monospace;font-size:11px;padding:1px 3px;cursor:pointer}
+</style>
+</head>
+<body>
+<div id="app">
+<div id="tbar">
+  <div><h1>■ SIMULADOR MCS-51</h1><div class="sub">Intel 8051/8052 — Emulador de Assembly</div></div>
+  <div id="sinfo">PASSO: <span class="v" id="sc">0</span> &nbsp;PC: <span class="v" id="pcd">-</span> &nbsp;<span class="v" id="sttxt" style="color:var(--gd)">PRONTO</span></div>
+</div>
+<div id="toolbar">
+  <select id="exsel"><option value="">-- Exemplos --</option><option value="soma">Soma de vetor</option><option value="fat">Fatorial (CALL)</option><option value="cpy">Copiar memória</option><option value="bcd">Aritmética BCD</option></select>
+  <button class="bprim" id="basm">⚙ MONTAR</button>
+  <button id="bstp" disabled>▶ PASSO</button>
+  <button id="brun" disabled>▶▶ EXECUTAR</button>
+  <button id="bstp2" disabled>■ PARAR</button>
+  <button class="bdng" id="brst" disabled>↺ REINICIAR</button>
+  <span id="spdlbl">VELOC:</span>
+  <input type="range" id="spdrng" min="1" max="5" value="2">
+  <span id="spdnm" style="font-size:9px;color:var(--gd)">NORMAL</span>
+</div>
+<div id="main">
+  <div class="panel" id="ep">
+    <div class="phdr"><span>EDITOR DE CÓDIGO FONTE</span><span style="font-size:9px">; para comentários</span></div>
+    <div id="etabs"><div class="tab act" id="te" onclick="switchTab('e')">EDITAR</div><div class="tab" id="tv" onclick="switchTab('v')">VISUALIZAR</div></div>
+    <textarea id="ced" spellcheck="false"></textarea>
+    <div id="cdsp"></div>
+    <div class="phdr" style="flex-shrink:0">MENSAGENS</div>
+    <div id="log"></div>
+  </div>
+  <div class="panel" id="rp"><div class="phdr">REGISTRADORES / FLAGS</div><div id="rc"></div></div>
+  <div class="panel" id="mp"><div class="phdr"><span>RAM INTERNA (00H–7FH)</span><span style="font-size:9px;color:var(--gd)">128 bytes</span></div><div id="mc"></div></div>
+</div>
+</div>
+
+<script>
+const EX={
+soma:`; Exemplo 1: Soma de vetor
+; Soma 5 valores a partir de 30H
+; Resultado em 50H (esperado: 96H = 150)
+
+        ORG     0000H
+
+INICIO: MOV     30H, #10    ; dados[0] = 10
+        MOV     31H, #20    ; dados[1] = 20
+        MOV     32H, #30    ; dados[2] = 30
+        MOV     33H, #40    ; dados[3] = 40
+        MOV     34H, #50    ; dados[4] = 50
+
+        MOV     R0, #30H    ; R0 = ponteiro
+        MOV     R2, #5      ; R2 = contador
+        CLR     A           ; ACC = 0
+
+SOMA:   ADD     A, @R0      ; ACC += mem[R0]
+        INC     R0          ; avanca ponteiro
+        DJNZ    R2, SOMA    ; repete 5 vezes
+
+        MOV     50H, A      ; guarda resultado
+
+FIM:    SJMP    FIM         ; fim
+
+        END`,
+fat:`; Exemplo 2: Fatorial via subrotina
+; Calcula 5! = 120 (78H)
+; Resultado em A e em 40H
+
+        ORG     0000H
+
+INICIO: MOV     A, #5       ; N = 5
+        LCALL   FATOR       ; chama subrotina
+        MOV     40H, A      ; salva resultado
+FIM:    SJMP    FIM         ; fim
+
+; --- Subrotina FATOR ---
+; Entrada: A = N
+; Saida:   A = N!
+FATOR:  MOV     R0, A       ; salva N em R0
+        MOV     A, #1       ; resultado = 1
+        MOV     R1, R0      ; contador = N
+
+LOOP:   CJNE    R1, #0, MULT ; se R1!=0, multiplica
+        RET                  ; retorna
+
+MULT:   MOV     B, R1       ; B = contador
+        MUL     AB          ; A = A * B
+        DEC     R1          ; decrementa contador
+        SJMP    LOOP
+
+        END`,
+cpy:`; Exemplo 3: Copiar bloco de memoria
+; Copia 8 bytes de 20H para 40H
+
+        ORG     0000H
+
+INICIO: MOV     20H, #0AAH
+        MOV     21H, #0BBH
+        MOV     22H, #0CCH
+        MOV     23H, #0DDH
+        MOV     24H, #11H
+        MOV     25H, #22H
+        MOV     26H, #33H
+        MOV     27H, #44H
+
+        MOV     R0, #20H    ; fonte
+        MOV     R1, #40H    ; destino
+        MOV     R2, #8      ; contador
+
+COPIA:  MOV     A, @R0      ; le byte
+        MOV     @R1, A      ; escreve
+        INC     R0
+        INC     R1
+        DJNZ    R2, COPIA
+
+FIM:    SJMP    FIM
+
+        END`,
+bcd:`; Exemplo 4: Aritmetica BCD
+; 29H + 47H = 76 (BCD)
+; 99H + 01H = 00H com CY=1 (overflow)
+
+        ORG     0000H
+
+INICIO: MOV     A, #29H     ; 29 (BCD)
+        ADD     A, #47H     ; + 47
+        DA      A           ; ajuste decimal
+        MOV     50H, A      ; resultado: 76H
+
+        MOV     A, #99H     ; 99 (BCD)
+        ADD     A, #01H     ; + 1
+        DA      A           ; ajuste: 00H, CY=1
+        MOV     51H, A      ; resultado: 00H
+
+FIM:    SJMP    FIM
+
+        END`
+};
+
+function assemble(src){
+  const lines=src.split('\n'),instrs=[],labels={},errors=[],equs={};
+  function pn(s){s=s.trim();if(!s)return NaN;if(s.startsWith('0X')||s.startsWith('0x'))return parseInt(s.slice(2),16);if(/^[0-9A-Fa-f]+[Hh]$/.test(s))return parseInt(s.slice(0,-1),16);if(/^[01]+[Bb]$/.test(s))return parseInt(s.slice(0,-1),2);if(s.startsWith("'")&&s.endsWith("'")&&s.length>=3)return s.charCodeAt(1);if(/^-?\d+$/.test(s))return parseInt(s,10);return NaN;}
+  for(let ln=0;ln<lines.length;ln++){
+    let line=lines[ln];
+    const ci=line.indexOf(';');if(ci>=0)line=line.slice(0,ci);
+    line=line.trim();if(!line)continue;
+    const lm=line.match(/^([A-Za-z_][A-Za-z0-9_]*):\s*(.*)/);
+    let label=null,rest=line;
+    if(lm){label=lm[1].toUpperCase();rest=lm[2].trim();}
+    if(!rest){if(label)labels[label]=instrs.length;continue;}
+    const pm=rest.match(/^([A-Za-z]+)\s*(.*)/);
+    if(!pm)continue;
+    const op=pm[1].toUpperCase(),argsRaw=pm[2].trim();
+    if(op==='END')break;if(op==='ORG'||op==='DB'||op==='DW')continue;
+    if(op==='EQU'){if(label){const v=pn(argsRaw);if(!isNaN(v))equs[label]=v;}continue;}
+    const idx=instrs.length;
+    if(label)labels[label]=idx;
+    const args=argsRaw?argsRaw.split(',').map(a=>{const t=a.trim().toUpperCase();return t==='$'?'@PC:'+idx:t}):[];
+    instrs.push({op,args,srcLine:ln,raw:rest});
+  }
+  const REGS=new Set(['A','ACC','B','C','AB','DPTR','PC','R0','R1','R2','R3','R4','R5','R6','R7','@R0','@R1','@DPTR','SP','PSW','P0','P1','P2','P3','DPL','DPH']);
+  for(let i=0;i<instrs.length;i++){
+    for(let j=0;j<instrs[i].args.length;j++){
+      const a=instrs[i].args[j];
+      if(a.startsWith('@PC:')||a.startsWith('@LABEL:')||a.startsWith('#'))continue;
+      if(REGS.has(a))continue;
+      if(/^[0-9A-Fa-f]+[Hh]?$/.test(a)||/^[01]+[Bb]$/.test(a))continue;
+      if(/^[A-Z_][A-Z0-9_.]*$/.test(a)){
+        if(labels.hasOwnProperty(a))instrs[i].args[j]='@LABEL:'+labels[a];
+        else if(equs.hasOwnProperty(a))instrs[i].args[j]=String(equs[a]);
+        else errors.push('Linha '+(instrs[i].srcLine+1)+': símbolo não definido: '+a);
+      }
+    }
+  }
+  return{instrs,labels,errors};
+}
+
+class Sim8051{
+  constructor(){this.reset();}
+  reset(){
+    this.iram=new Uint8Array(128);
+    this.sp=7;this.acc=0;this.b=0;this.dpl=0;this.dph=0;this.psw=0;
+    this.p0=0xFF;this.p1=0xFF;this.p2=0xFF;this.p3=0xFF;
+    this.pc=0;this.halted=false;this.chgR=new Set();this.chgM=new Set();
+  }
+  get dptr(){return(this.dph<<8)|this.dpl;}
+  set dptr(v){v&=0xFFFF;const h=(v>>8)&0xFF,l=v&0xFF;if(this.dph!==h||this.dpl!==l)this.chgR.add('DPTR');this.dph=h;this.dpl=l;}
+  getCY(){return(this.psw>>7)&1;}setCY(v){this.psw=v?(this.psw|0x80):(this.psw&0x7F);}
+  getAC(){return(this.psw>>6)&1;}setAC(v){this.psw=v?(this.psw|0x40):(this.psw&0xBF);}
+  getOV(){return(this.psw>>2)&1;}setOV(v){this.psw=v?(this.psw|0x04):(this.psw&0xFB);}
+  get rb(){return((this.psw>>3)&3)*8;}
+  gR(n){return this.iram[this.rb+n];}
+  sR(n,v){v&=0xFF;const a=this.rb+n;if(this.iram[a]!==v){this.chgM.add(a);this.chgR.add('R'+n);}this.iram[a]=v;}
+  sACC(v){v&=0xFF;if(this.acc!==v)this.chgR.add('ACC');this.acc=v;let p=0,x=v;while(x){p^=x&1;x>>=1;}this.psw=p?(this.psw|1):(this.psw&0xFE);this.chgR.add('PSW');}
+  sPSW(v){v&=0xFF;if(this.psw!==v)this.chgR.add('PSW');this.psw=v;}
+  rd(a){a&=0xFF;if(a<0x80)return this.iram[a];switch(a){case 0xE0:return this.acc;case 0xF0:return this.b;case 0x81:return this.sp;case 0x82:return this.dpl;case 0x83:return this.dph;case 0xD0:return this.psw;case 0x80:return this.p0;case 0x90:return this.p1;case 0xA0:return this.p2;case 0xB0:return this.p3;default:return 0;}}
+  wd(a,v){a&=0xFF;v&=0xFF;if(a<0x80){if(this.iram[a]!==v)this.chgM.add(a);this.iram[a]=v;const rb=this.rb;if(a>=rb&&a<rb+8)this.chgR.add('R'+(a-rb));return;}switch(a){case 0xE0:this.sACC(v);break;case 0xF0:if(this.b!==v)this.chgR.add('B');this.b=v;break;case 0x81:if(this.sp!==v)this.chgR.add('SP');this.sp=v;break;case 0x82:if(this.dpl!==v)this.chgR.add('DPTR');this.dpl=v;break;case 0x83:if(this.dph!==v)this.chgR.add('DPTR');this.dph=v;break;case 0xD0:this.sPSW(v);break;case 0x80:this.p0=v;this.chgR.add('P0');break;case 0x90:this.p1=v;this.chgR.add('P1');break;case 0xA0:this.p2=v;this.chgR.add('P2');break;case 0xB0:this.p3=v;this.chgR.add('P3');break;}}
+  push(v){this.sp=(this.sp+1)&0xFF;this.iram[this.sp]=v&0xFF;this.chgM.add(this.sp);this.chgR.add('SP');}
+  pop(){const v=this.iram[this.sp];this.chgM.add(this.sp);this.sp=(this.sp-1)&0xFF;this.chgR.add('SP');return v;}
+  addOp(a,b,c){const r=a+b+c;this.setCY(r>255?1:0);this.setAC(((a&0xF)+(b&0xF)+c)>0xF?1:0);this.setOV(((a^r)&(b^r)&0x80)?1:0);this.chgR.add('PSW');return r&0xFF;}
+  subOp(a,b,c){const r=a-b-c;this.setCY(r<0?1:0);this.setAC(((a&0xF)-(b&0xF)-c)<0?1:0);this.setOV(((a^b)&(a^(r&0xFF))&0x80)?1:0);this.chgR.add('PSW');return((r%256)+256)%256;}
+}
+
+function h8(v){return(v&0xFF).toString(16).toUpperCase().padStart(2,'0')+'H';}
+function h16(v){return(v&0xFFFF).toString(16).toUpperCase().padStart(4,'0')+'H';}
+
+function execStep(sim,prog){
+  if(sim.halted)return{msg:'Programa finalizado.',halted:true};
+  if(sim.pc>=prog.instrs.length){sim.halted=true;return{msg:'Fim do programa.',halted:true};}
+  const{op,args}=prog.instrs[sim.pc];
+  sim.chgR.clear();sim.chgM.clear();
+  function pn(s){s=s.trim();if(!s)return NaN;if(s.startsWith('0X'))return parseInt(s.slice(2),16);if(/^[0-9A-Fa-f]+H$/.test(s))return parseInt(s.slice(0,-1),16);if(/^[01]+B$/.test(s))return parseInt(s.slice(0,-1),2);if(s.startsWith("'")&&s.endsWith("'"))return s.charCodeAt(1);if(/^-?\d+$/.test(s))return parseInt(s,10);return NaN;}
+  function gda(a){if(!a)return NaN;if(/^R([0-7])$/.test(a))return sim.rb+parseInt(a[1]);if(a==='A'||a==='ACC')return 0xE0;if(a==='B')return 0xF0;if(a==='SP')return 0x81;if(a==='DPL')return 0x82;if(a==='DPH')return 0x83;if(a==='PSW')return 0xD0;if(a==='P0')return 0x80;if(a==='P1')return 0x90;if(a==='P2')return 0xA0;if(a==='P3')return 0xB0;const n=pn(a);return isNaN(n)?NaN:n&0xFF;}
+  function gsv(a){if(!a)throw new Error('Operando ausente');if(a.startsWith('#')){const n=pn(a.slice(1));if(isNaN(n))throw new Error('Imediato inválido:'+a);return n&0xFF;}if(a==='A'||a==='ACC')return sim.acc;if(a==='B')return sim.b;if(a==='C')return sim.getCY();if(a==='DPTR')return sim.dptr;if(/^R([0-7])$/.test(a))return sim.gR(parseInt(a[1]));if(/^@R([01])$/.test(a))return sim.rd(sim.gR(parseInt(a[2])));if(a.startsWith('@LABEL:')||a.startsWith('@PC:'))return parseInt(a.split(':')[1]);const addr=gda(a);if(isNaN(addr))throw new Error('Operando inválido:'+a);return sim.rd(addr);}
+  function rj(a){if(a&&(a.startsWith('@LABEL:')||a.startsWith('@PC:')))return parseInt(a.split(':')[1]);throw new Error('Destino inválido:'+a);}
+  let npc=sim.pc+1,msg='';
+  try{
+    switch(op){
+      case 'NOP':msg='NOP';break;
+      case 'MOV':{
+        const d=args[0],s=args[1];
+        if(d==='DPTR'){const v=pn(s.startsWith('#')?s.slice(1):s)&0xFFFF;sim.dptr=v;msg='MOV DPTR, '+h16(v);break;}
+        let val;
+        if(s.startsWith('#'))val=pn(s.slice(1))&0xFF;
+        else if(s==='A'||s==='ACC')val=sim.acc;else if(s==='B')val=sim.b;
+        else if(/^R([0-7])$/.test(s))val=sim.gR(parseInt(s[1]));
+        else if(/^@R([01])$/.test(s))val=sim.rd(sim.gR(parseInt(s[2])));
+        else{const a=gda(s);if(isNaN(a))throw new Error('Src inválido:'+s);val=sim.rd(a);}
+        if(d==='A'||d==='ACC')sim.sACC(val);
+        else if(/^R([0-7])$/.test(d))sim.sR(parseInt(d[1]),val);
+        else if(/^@R([01])$/.test(d))sim.wd(sim.gR(parseInt(d[2])),val);
+        else{const a=gda(d);if(isNaN(a))throw new Error('Dst inválido:'+d);sim.wd(a,val);}
+        msg='MOV '+d+' \u2190 '+h8(val)+' ('+val+')';break;
+      }
+      case 'ADD':{const oa=sim.acc,sv=gsv(args[1]);sim.sACC(sim.addOp(sim.acc,sv,0));msg='ADD: '+h8(oa)+' + '+h8(sv)+' = '+h8(sim.acc)+' CY='+sim.getCY()+' OV='+sim.getOV();break;}
+      case 'ADDC':{const oa=sim.acc,sv=gsv(args[1]);sim.sACC(sim.addOp(sim.acc,sv,sim.getCY()));msg='ADDC: '+h8(oa)+' + '+h8(sv)+' + CY = '+h8(sim.acc);break;}
+      case 'SUBB':{const oa=sim.acc,sv=gsv(args[1]);sim.sACC(sim.subOp(sim.acc,sv,sim.getCY()));msg='SUBB: '+h8(oa)+' - '+h8(sv)+' = '+h8(sim.acc);break;}
+      case 'INC':{
+        const d=args[0];
+        if(d==='A'||d==='ACC')sim.sACC((sim.acc+1)&0xFF);
+        else if(d==='DPTR')sim.dptr=(sim.dptr+1)&0xFFFF;
+        else if(/^R([0-7])$/.test(d)){const n=parseInt(d[1]);sim.sR(n,(sim.gR(n)+1)&0xFF);}
+        else if(/^@R([01])$/.test(d)){const a=sim.gR(parseInt(d[2]));sim.wd(a,(sim.rd(a)+1)&0xFF);}
+        else{const a=gda(d);if(!isNaN(a))sim.wd(a,(sim.rd(a)+1)&0xFF);}
+        msg='INC '+d;break;
+      }
+      case 'DEC':{
+        const d=args[0];
+        if(d==='A'||d==='ACC')sim.sACC((sim.acc-1+256)&0xFF);
+        else if(/^R([0-7])$/.test(d)){const n=parseInt(d[1]);sim.sR(n,(sim.gR(n)-1+256)&0xFF);}
+        else if(/^@R([01])$/.test(d)){const a=sim.gR(parseInt(d[2]));sim.wd(a,(sim.rd(a)-1+256)&0xFF);}
+        else{const a=gda(d);if(!isNaN(a))sim.wd(a,(sim.rd(a)-1+256)&0xFF);}
+        msg='DEC '+d;break;
+      }
+      case 'MUL':{const oa=sim.acc,ob=sim.b,r=oa*ob,hi=(r>>8)&0xFF,lo=r&0xFF;sim.sACC(lo);if(sim.b!==hi)sim.chgR.add('B');sim.b=hi;sim.setCY(0);sim.setOV(r>255?1:0);sim.chgR.add('PSW');msg='MUL AB: '+oa+'\xD7'+ob+' = '+r+' \u2192 B:A = '+h8(hi)+':'+h8(lo);break;}
+      case 'DIV':{if(sim.b===0){sim.setCY(0);sim.setOV(1);sim.chgR.add('PSW');msg='DIV AB: ERRO divisão por zero!';}else{const q=Math.floor(sim.acc/sim.b),r=sim.acc%sim.b;sim.sACC(q);if(sim.b!==r)sim.chgR.add('B');sim.b=r;sim.setCY(0);sim.setOV(0);sim.chgR.add('PSW');msg='DIV AB: quociente='+h8(q)+' resto='+h8(r);}break;}
+      case 'ANL':{const d=args[0],s=args[1];if(d==='A'||d==='ACC'){sim.sACC(sim.acc&gsv(s));}else{const a=gda(d);const v=s==='A'?sim.acc:pn(s.slice(1))&0xFF;sim.wd(a,sim.rd(a)&v);}msg='ANL '+d+', '+s+' \u2192 '+h8(d==='A'?sim.acc:sim.rd(gda(d)));break;}
+      case 'ORL':{const d=args[0],s=args[1];if(d==='A'||d==='ACC'){sim.sACC(sim.acc|gsv(s));}else{const a=gda(d);const v=s==='A'?sim.acc:pn(s.slice(1))&0xFF;sim.wd(a,sim.rd(a)|v);}msg='ORL '+d+', '+s;break;}
+      case 'XRL':{const d=args[0],s=args[1];if(d==='A'||d==='ACC'){sim.sACC(sim.acc^gsv(s));}else{const a=gda(d);const v=s==='A'?sim.acc:pn(s.slice(1))&0xFF;sim.wd(a,sim.rd(a)^v);}msg='XRL '+d+', '+s;break;}
+      case 'CLR':{const d=args[0];if(d==='A'||d==='ACC')sim.sACC(0);else if(d==='C'){sim.setCY(0);sim.chgR.add('PSW');}msg='CLR '+d;break;}
+      case 'SETB':{const d=args[0];if(d==='C'){sim.setCY(1);sim.chgR.add('PSW');}msg='SETB '+d;break;}
+      case 'CPL':{const d=args[0];if(d==='A'||d==='ACC')sim.sACC((~sim.acc)&0xFF);else if(d==='C'){sim.setCY(sim.getCY()^1);sim.chgR.add('PSW');}msg='CPL '+d+' \u2192 '+h8(d==='A'?sim.acc:sim.getCY());break;}
+      case 'RL':{const a=sim.acc;sim.sACC(((a<<1)|(a>>7))&0xFF);msg='RL A: '+h8(a)+' \u2192 '+h8(sim.acc);break;}
+      case 'RLC':{const a=sim.acc,c=sim.getCY();sim.setCY((a>>7)&1);sim.sACC(((a<<1)|c)&0xFF);sim.chgR.add('PSW');msg='RLC A: '+h8(a)+' \u2192 '+h8(sim.acc)+' CY='+sim.getCY();break;}
+      case 'RR':{const a=sim.acc;sim.sACC(((a>>1)|((a&1)<<7))&0xFF);msg='RR A: '+h8(a)+' \u2192 '+h8(sim.acc);break;}
+      case 'RRC':{const a=sim.acc,c=sim.getCY();sim.setCY(a&1);sim.sACC(((a>>1)|(c<<7))&0xFF);sim.chgR.add('PSW');msg='RRC A: '+h8(a)+' \u2192 '+h8(sim.acc)+' CY='+sim.getCY();break;}
+      case 'SWAP':{const a=sim.acc;sim.sACC(((a&0x0F)<<4)|((a>>4)&0x0F));msg='SWAP A: '+h8(a)+' \u2192 '+h8(sim.acc);break;}
+      case 'PUSH':{const a=gda(args[0]);if(isNaN(a))throw new Error('PUSH: end inválido');const v=sim.rd(a);sim.push(v);msg='PUSH '+args[0]+': val='+h8(v)+' SP='+h8(sim.sp);break;}
+      case 'POP':{const a=gda(args[0]);if(isNaN(a))throw new Error('POP: end inválido');const v=sim.pop();sim.wd(a,v);msg='POP '+args[0]+': val='+h8(v)+' SP='+h8(sim.sp);break;}
+      case 'XCH':{const d=args[1];let bv;if(/^R([0-7])$/.test(d))bv=sim.gR(parseInt(d[1]));else if(/^@R([01])$/.test(d))bv=sim.rd(sim.gR(parseInt(d[2])));else bv=sim.rd(gda(d));const av=sim.acc;sim.sACC(bv);if(/^R([0-7])$/.test(d))sim.sR(parseInt(d[1]),av);else if(/^@R([01])$/.test(d))sim.wd(sim.gR(parseInt(d[2])),av);else sim.wd(gda(d),av);msg='XCH A,'+d+': '+h8(av)+'\u2194'+h8(bv);break;}
+      case 'JMP':case 'LJMP':case 'AJMP':case 'SJMP':{const t=rj(args[0]);if(t===sim.pc){sim.halted=true;msg=op+' $ \u2014 halt';npc=sim.pc;}else{npc=t;msg=op+' \u2192 instr '+t;}break;}
+      case 'JZ':{const t=rj(args[0]);if(sim.acc===0){npc=t;msg='JZ: A=0, salta \u2192 '+t;}else msg='JZ: A\u22600, não salta';break;}
+      case 'JNZ':{const t=rj(args[0]);if(sim.acc!==0){npc=t;msg='JNZ: A='+h8(sim.acc)+', salta \u2192 '+t;}else msg='JNZ: A=0, não salta';break;}
+      case 'JC':{const t=rj(args[0]);if(sim.getCY()){npc=t;msg='JC: CY=1, salta';}else msg='JC: CY=0, não salta';break;}
+      case 'JNC':{const t=rj(args[0]);if(!sim.getCY()){npc=t;msg='JNC: CY=0, salta';}else msg='JNC: CY=1, não salta';break;}
+      case 'JB':{const bs=args[0],t=rj(args[1]);let bv=0;if(bs==='C')bv=sim.getCY();else{const ba=pn(bs);if(!isNaN(ba))bv=(sim.iram[0x20+(ba>>3)]>>(ba&7))&1;}if(bv){npc=t;msg='JB: bit=1, salta';}else msg='JB: bit=0, não salta';break;}
+      case 'JNB':{const bs=args[0],t=rj(args[1]);let bv=0;if(bs==='C')bv=sim.getCY();if(!bv){npc=t;msg='JNB: bit=0, salta';}else msg='JNB: bit=1, não salta';break;}
+      case 'DJNZ':{const d=args[0],t=rj(args[1]);let v;if(/^R([0-7])$/.test(d)){const n=parseInt(d[1]);v=(sim.gR(n)-1+256)&0xFF;sim.sR(n,v);}else{const a=gda(d);v=(sim.rd(a)-1+256)&0xFF;sim.wd(a,v);}if(v!==0){npc=t;msg='DJNZ '+d+': '+(v+1)+'\u2192'+v+', salta \u2192 '+t;}else msg='DJNZ '+d+': chegou a 0, continua';break;}
+      case 'CJNE':{const s1=args[0],s2=args[1],t=rj(args[2]);let v1,v2;if(s1==='A'||s1==='ACC'){v1=sim.acc;v2=s2.startsWith('#')?pn(s2.slice(1))&0xFF:sim.rd(gda(s2));}else if(/^R([0-7])$/.test(s1)){v1=sim.gR(parseInt(s1[1]));v2=pn(s2.slice(1))&0xFF;}else if(/^@R([01])$/.test(s1)){v1=sim.rd(sim.gR(parseInt(s1[2])));v2=pn(s2.slice(1))&0xFF;}else throw new Error('CJNE: op inválido');sim.setCY(v1<v2?1:0);sim.chgR.add('PSW');if(v1!==v2){npc=t;msg='CJNE: '+h8(v1)+'\u2260'+h8(v2)+', salta \u2192 '+t;}else msg='CJNE: '+h8(v1)+'='+h8(v2)+', não salta';break;}
+      case 'CALL':case 'LCALL':case 'ACALL':{const t=rj(args[0]),ret=sim.pc+1;sim.push(ret&0xFF);sim.push((ret>>8)&0xFF);npc=t;msg=op+' \u2192 instr '+t+' (retorno: '+ret+')';break;}
+      case 'RET':case 'RETI':{const hi=sim.pop(),lo=sim.pop();npc=((hi<<8)|lo)&0xFFFF;if(npc>=prog.instrs.length){sim.halted=true;}msg=op+' \u2192 instr '+npc;break;}
+      case 'DA':{let a=sim.acc,c=sim.getCY();if((a&0x0F)>9||sim.getAC())a+=6;if(a>0x99||c){a+=0x60;c=1;}sim.sACC(a&0xFF);sim.setCY(c);sim.chgR.add('PSW');msg='DA A: ajuste BCD \u2192 '+h8(sim.acc)+' CY='+c;break;}
+      default:throw new Error('Instrução não implementada: '+op);
+    }
+  }catch(e){return{msg:'\u26A0 ERRO: '+e.message,error:true};}
+  sim.pc=npc;sim.chgR.add('PC');
+  return{msg,halted:sim.halted};
+}
+
+let sim=new Sim8051(),prog=null,stepCount=0,runTmr=null,asmOk=false,lastR=new Set(),lastM=new Set();
+
+function renderRegs(){
+  const c=lastR;
+  function rv(name,hex,dec){const ch=c.has(name)?' ch':'';const d=dec!==undefined?` <span style="color:var(--gd);font-size:9px">(${dec})</span>`:'';return`<div class="rr"><span class="rn">${name}</span><span class="rv${ch}">${hex}${d}</span></div>`;}
+  let h=`<div class="rs"><div class="rst">ESPECIAIS</div>`;
+  h+=rv('PC',h16(sim.pc),sim.pc);
+  h+=rv('SP',h8(sim.sp),sim.sp);
+  h+=rv('ACC',h8(sim.acc),sim.acc);
+  h+=rv('B',h8(sim.b),sim.b);
+  h+=rv('DPTR',h16(sim.dptr));
+  h+=rv('PSW',h8(sim.psw));
+  h+=`</div>`;
+  const rb=sim.rb;
+  h+=`<div class="rs"><div class="rst">BANCO R0-R7 (B${(sim.psw>>3)&3})</div>`;
+  for(let i=0;i<8;i++){const v=sim.gR(i);const ch=(c.has('R'+i)||lastM.has(rb+i))?' ch':'';h+=`<div class="rr"><span class="rn" style="font-size:9px;color:var(--gd)">(${h8(rb+i)})</span><span class="rn">R${i}</span><span class="rv${ch}">${h8(v)} <span style="color:var(--gd);font-size:9px">(${v})</span></span></div>`;}
+  h+=`</div>`;
+  h+=`<div class="rs"><div class="rst">PORTAS I/O</div>`;
+  h+=rv('P0',h8(sim.p0));h+=rv('P1',h8(sim.p1));h+=rv('P2',h8(sim.p2));h+=rv('P3',h8(sim.p3));
+  h+=`</div>`;
+  const psw=sim.psw;
+  const flags=[{n:'CY',v:(psw>>7)&1},{n:'AC',v:(psw>>6)&1},{n:'F0',v:(psw>>5)&1},{n:'RS1',v:(psw>>4)&1},{n:'RS0',v:(psw>>3)&1},{n:'OV',v:(psw>>2)&1},{n:'-',v:(psw>>1)&1},{n:'P',v:psw&1}];
+  h+=`<div class="rs"><div class="rst">FLAGS PSW</div><div class="fg">`;
+  for(const f of flags){const sc=f.v?' set':'';h+=`<div class="fc"><div class="fn">${f.n}</div><div class="fv${sc}">${f.v}</div></div>`;}
+  h+=`</div></div>`;
+  document.getElementById('rc').innerHTML=h;
+}
+
+function renderMem(){
+  const cols=8;let h=`<div class="mhrow"><span class="ma"></span>`;
+  for(let c=0;c<cols;c++)h+=`<span class="mhb">+${c}</span>`;
+  h+=`<span class="masc">ASCII</span></div>`;
+  for(let row=0;row<16;row++){
+    const base=row*cols;
+    h+=`<div class="mrow"><span class="ma">${base.toString(16).toUpperCase().padStart(2,'0')}H</span>`;
+    let asc='';
+    for(let c=0;c<cols;c++){
+      const addr=base+c,v=sim.iram[addr];
+      const nz=v!==0?' nz':'',ch=lastM.has(addr)?' ch':'',sk=prog&&sim.pc<prog.instrs.length&&addr===sim.rb+0?' sk':'';
+      h+=`<span class="mb${nz}${ch}${sk}">${v.toString(16).toUpperCase().padStart(2,'0')}</span>`;
+      asc+=(v>=32&&v<127)?String.fromCharCode(v):'.';
+    }
+    h+=`<span class="masc">${asc}</span></div>`;
+  }
+  document.getElementById('mc').innerHTML=h;
+}
+
+function renderDisasm(){
+  if(!prog)return;
+  const lines=document.getElementById('ced').value.split('\n');
+  let h='';
+  prog.instrs.forEach((ins,i)=>{
+    const isCur=i===sim.pc&&!sim.halted;
+    const srcLine=lines[ins.srcLine]||'';
+    const ci=srcLine.indexOf(';');
+    const code=ci>=0?srcLine.slice(0,ci).trim():srcLine.trim();
+    h+=`<div class="sl${isCur?' ipc':''}"><span class="ln">${i}</span><span class="ar">${isCur?'\u25B6':' '}</span><span class="code">${code||ins.raw}</span></div>`;
+  });
+  document.getElementById('cdsp').innerHTML=h;
+  const cur=document.querySelector('.sl.ipc');
+  if(cur)cur.scrollIntoView({block:'nearest'});
+}
+
+function logMsg(msg,cls='i'){
+  const d=document.getElementById('log');
+  const el=document.createElement('div');
+  el.className='ll '+cls;el.textContent=msg;
+  d.appendChild(el);d.scrollTop=d.scrollHeight;
+  if(d.children.length>80)d.removeChild(d.firstChild);
+}
+
+function updateStatusBar(){
+  document.getElementById('sc').textContent=stepCount;
+  document.getElementById('pcd').textContent=prog?h16(sim.pc):'-';
+  document.getElementById('sttxt').textContent=sim.halted?'HALTED':asmOk?'EM EXECUÇÃO':'PRONTO';
+  document.getElementById('sttxt').style.color=sim.halted?'var(--ge)':asmOk?'var(--g)':'var(--gd)';
+}
+
+function doAssemble(){
+  stopRun();
+  const src=document.getElementById('ced').value;
+  if(!src.trim()){logMsg('Nenhum código para montar.','w');return;}
+  prog=assemble(src);
+  if(prog.errors.length){prog.errors.forEach(e=>logMsg(e,'e'));asmOk=false;prog=null;setButtons(false);return;}
+  sim.reset();stepCount=0;asmOk=true;lastR.clear();lastM.clear();
+  logMsg('Montagem OK — '+prog.instrs.length+' instruções.','ok');
+  setButtons(true);renderRegs();renderMem();renderDisasm();updateStatusBar();
+}
+
+function doStep(){
+  if(!prog||sim.halted)return;
+  const res=execStep(sim,prog);
+  lastR=new Set(sim.chgR);lastM=new Set(sim.chgM);
+  stepCount++;
+  logMsg('['+stepCount+'] '+res.msg,res.error?'e':'i');
+  renderRegs();renderMem();renderDisasm();updateStatusBar();
+  if(res.halted||sim.halted)setButtons(true,true);
+}
+
+const SPEEDS=[50,200,500,1000,2000];
+const SNAMES=['RÁPIDO','NORMAL','LENTO','PASSO','ULTRA'];
+function startRun(){
+  if(!prog||sim.halted)return;
+  const spd=parseInt(document.getElementById('spdrng').value);
+  const delay=SPEEDS[spd-1]||200;
+  document.getElementById('bstp').disabled=true;
+  document.getElementById('brun').disabled=true;
+  document.getElementById('bstp2').disabled=false;
+  runTmr=setInterval(()=>{doStep();if(sim.halted)stopRun();},delay);
+}
+function stopRun(){
+  if(runTmr){clearInterval(runTmr);runTmr=null;}
+  if(prog&&asmOk)setButtons(true,sim.halted);
+}
+
+function doReset(){
+  stopRun();
+  sim.reset();stepCount=0;lastR.clear();lastM.clear();
+  logMsg('CPU reiniciada.','w');
+  renderRegs();renderMem();renderDisasm();updateStatusBar();
+  setButtons(true);
+}
+
+function setButtons(asm,halted){
+  document.getElementById('bstp').disabled=!asm||halted||!!runTmr;
+  document.getElementById('brun').disabled=!asm||halted||!!runTmr;
+  document.getElementById('bstp2').disabled=!runTmr;
+  document.getElementById('brst').disabled=!asm;
+}
+
+function switchTab(t){
+  const ed=document.getElementById('ced'),ds=document.getElementById('cdsp');
+  const te=document.getElementById('te'),tv=document.getElementById('tv');
+  if(t==='e'){ed.style.display='block';ds.style.display='none';te.classList.add('act');tv.classList.remove('act');}
+  else{ed.style.display='none';ds.style.display='block';te.classList.remove('act');tv.classList.add('act');renderDisasm();}
+}
+
+document.getElementById('basm').onclick=doAssemble;
+document.getElementById('bstp').onclick=doStep;
+document.getElementById('brun').onclick=startRun;
+document.getElementById('bstp2').onclick=stopRun;
+document.getElementById('brst').onclick=doReset;
+document.getElementById('spdrng').oninput=function(){
+  const names=['ULTRA','RÁPIDO','NORMAL','LENTO','PASSO'];
+  document.getElementById('spdnm').textContent=names[this.value-1]||'NORMAL';
+};
+document.getElementById('exsel').onchange=function(){
+  if(!this.value)return;
+  stopRun();prog=null;asmOk=false;sim.reset();stepCount=0;lastR.clear();lastM.clear();
+  document.getElementById('ced').value=EX[this.value]||'';
+  document.getElementById('log').innerHTML='';
+  setButtons(false);renderRegs();renderMem();updateStatusBar();
+  switchTab('e');this.value='';
+};
+
+// Init
+document.getElementById('ced').value=EX.soma;
+renderRegs();renderMem();updateStatusBar();
+logMsg('Simulador MCS-51 pronto. Selecione um exemplo ou escreva código, depois clique em MONTAR.','ok');
+</script>
+</body>
+</html>
